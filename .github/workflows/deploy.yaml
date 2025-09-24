@@ -1,0 +1,49 @@
+name: CD → Ubuntu / Nginx
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x          # match your SDK
+
+    - name: Publish
+      run: |
+        dotnet publish -c Release -o publish \
+          --no-restore --no-build-self-contained
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: published
+        path: publish
+
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+    - name: Deploy & restart service
+      run: |
+        ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo systemctl stop myapp'
+
+        # copy files
+        rsync -avz --delete-after -e ssh \
+              ./publish/ \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/myapp/
+
+        ssh -o StrictHostKeyChecking=no \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo systemctl start myapp'
