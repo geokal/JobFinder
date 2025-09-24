@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x          # match your SDK
+        dotnet-version: 8.0.117          # match your SDK
 
     - name: Publish
       run: |
@@ -37,13 +37,13 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo systemctl stop myapp'
+            'sudo systemctl stop QuizManager'
 
         # copy files
         rsync -avz --delete-after -e ssh \
               ./publish/ \
-              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/myapp/
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/jobfinder/html/
 
         ssh -o StrictHostKeyChecking=no \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo systemctl start myapp'
+            'sudo systemctl start QuizManager'
